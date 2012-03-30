@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Simple translation model and language model data structures
 import sys
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 
 # A translation model is a dictionary where keys are tuples of French words
 # and values are lists of (english, logprob) named tuples. For instance,

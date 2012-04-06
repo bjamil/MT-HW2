@@ -1,4 +1,12 @@
 #!/usr/bin/env python
+###############################################################################################################
+# decode_mine.py                                                                                              #
+# Author      : Beenish Jamil                                                                                 #
+# Assignment  : CS468 - HW 2                                                                                  #
+# Description : An implementation of the stack decoding method for phrase based SMT.                          #
+#               Note that this model allows all permutations of the phrases with no reordering limits.        #
+#               This implementation also does not include any future cost estimation heuristics.              #
+###############################################################################################################
 import optparse
 import sys
 import models
@@ -11,8 +19,8 @@ optparser.add_option("-i", "--input", dest="input", default="data/input", help="
 optparser.add_option("-t", "--translation-model", dest="tm", default="data/tm", help="File containing translation model (default=data/tm)")
 optparser.add_option("-l", "--language-model", dest="lm", default="data/lm", help="File containing ARPA-format language model (default=data/lm)")
 optparser.add_option("-n", "--num_sentences", dest="num_sents", default=sys.maxint, type="int", help="Number of sentences to decode (default=no limit)")
-optparser.add_option("-k", "--translations-per-phrase", dest="k", default=20, type="int", help="Limit on number of translations to consider per phrase (default=1)")
-optparser.add_option("-s", "--stack-size", dest="s", default=100, type="int", help="Maximum stack size (default=1)")
+optparser.add_option("-k", "--translations-per-phrase", dest="k", default=30, type="int", help="Limit on number of translations to consider per phrase (default=30)")
+optparser.add_option("-s", "--stack-size", dest="s", default=250, type="int", help="Maximum stack size (default=250)")
 optparser.add_option("-v", "--verbose", dest="verbose", action="store_true", default=False,  help="Verbose mode (default=off)")
 opts = optparser.parse_args()[0]
 
@@ -31,10 +39,6 @@ for word in set(sum(french,())):
 
 # define our hypothesis tuples
 hypothesis = namedtuple("hypothesis", "logprob, lm_state, predecessor, phrase, coverage, start, end")
-
-# define variables
-d = 3 # distortion
-verbose = False
 
 
 def expand_hypothesis(h, f, start, end):
@@ -96,18 +100,16 @@ for f in french:
     cover = tuple([0 for _ in f])
     initial_hypothesis = hypothesis(0.0, lm.begin(), None, None, cover, 0, 0)
 
-    stacks[0][((0,0), cover)] = initial_hypothesis # each hypothesis is unique identified by the
+    stacks[0][((0,0), cover)] = initial_hypothesis  # each hypothesis is uniquely identified by the
                                                     # the last phrase it translated and
                                                     # its coverage. it can recombine with other
-                                                    # similar hypothesises
+                                                    # hypothesises with the same properties
 
     # expand the top k hypothesises in each stack (except the last one since we can't expand
     # it any further anyway)
     for (x, stack) in enumerate(stacks[:-1]):
         #prune the stack to keep just the top k hypothesises in it only
         for h in sorted(stack.itervalues(), key = lambda h: -h.logprob)[:opts.s]:
-            if verbose:
-                print "we have ", len(stack), "hypthesises in stack" , x
             # append phrases that came before the phrase in the current hypoth
             for i in range(0, h.start):
                 for j in range(i+1, h.start+1):
